@@ -72,6 +72,11 @@ packages/web-templates/src/generated/
 .integration-tests/
 packages/vscode-ide-companion/*.vsix
 
+# Local host install/runtime artifacts
+/bin/qwen
+/runtime/
+/state/
+
 logs/
 .repro-runs/
 # GHA credentials
