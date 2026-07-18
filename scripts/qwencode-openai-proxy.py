@@ -17,6 +17,14 @@ PORT_FILE = os.environ.get("QWENCODE_PROXY_PORT_FILE")
 MAX_TOKENS = int(os.environ.get("QWENCODE_PROXY_MAX_TOKENS", "512"))
 
 
+def resolve_upstream_auth(client_auth: str | None) -> str | None:
+    """Use the client bearer token, or the canonical RassyCodex key."""
+    if client_auth:
+        return client_auth
+    key = os.environ.get("QWENCODE_PROXY_API_KEY", "").strip()
+    return f"Bearer {key}" if key else None
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -45,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
             "Accept": self.headers.get("Accept", "application/json"),
             "Content-Type": self.headers.get("Content-Type", "application/json"),
         }
-        auth = self.headers.get("Authorization")
+        auth = resolve_upstream_auth(self.headers.get("Authorization"))
         if auth:
             headers["Authorization"] = auth
 

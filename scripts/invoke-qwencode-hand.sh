@@ -22,6 +22,19 @@ PROXY_MAX_TOKENS="${QWENCODE_PROXY_MAX_TOKENS:-512}"
 PROXY_SCRIPT="${ROOT}/scripts/qwencode-openai-proxy.py"
 PROXY_START_TIMEOUT_TENTHS="${QWENCODE_PROXY_START_TIMEOUT_TENTHS:-300}"
 PROXY_LOG_DIR="${QWENCODE_PROXY_LOG_DIR:-${ROOT}/state/proxy-logs}"
+RASSYCODEX_APP_ENV="${RASSYCODEX_APP_ENV:-/data/apps/rassycodex/.env}"
+if [[ -r "$RASSYCODEX_APP_ENV" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$RASSYCODEX_APP_ENV"
+  set +a
+fi
+RASSYCODEX_API_KEY="${RASSYCODEX_API_KEY:-${RASSYGPT_API_KEY:-}}"
+RASSYCODEX_BASE_URL="${RASSYCODEX_BASE_URL:-${RASSYGPT_BASE_URL:-http://127.0.0.1:8844/v1}}"
+if [[ -z "$RASSYCODEX_API_KEY" ]]; then
+  printf 'RASSYCODEX_API_KEY is unavailable for Qwencode.\n' >&2
+  exit 1
+fi
 declare -a EXTRA_ARGS=()
 
 usage() {
@@ -180,6 +193,8 @@ if [[ "$USE_PROXY" != "0" ]]; then
   mkdir -p "$PROXY_LOG_DIR"
   PROXY_LOG="${PROXY_LOG_DIR}/proxy-$(date +%Y%m%dT%H%M%S).log"
   QWENCODE_PROXY_PORT_FILE="$PROXY_PORT_FILE" \
+    QWENCODE_PROXY_UPSTREAM_BASE="$RASSYCODEX_BASE_URL" \
+    QWENCODE_PROXY_API_KEY="$RASSYCODEX_API_KEY" \
     QWENCODE_PROXY_MAX_TOKENS="$PROXY_MAX_TOKENS" \
     "$PROXY_SCRIPT" >"$PROXY_LOG" 2>&1 &
   PROXY_PID="$!"
@@ -200,6 +215,7 @@ if [[ "$USE_PROXY" != "0" ]]; then
     exit 1
   fi
   export QWENCODE_OPENAI_BASE_URL="http://127.0.0.1:$(cat "$PROXY_PORT_FILE")/v1"
+  export OPENAI_API_KEY="$RASSYCODEX_API_KEY"
 fi
 
 cmd=(
