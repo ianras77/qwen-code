@@ -18,7 +18,7 @@ MAX_TOKENS = int(os.environ.get("QWENCODE_PROXY_MAX_TOKENS", "512"))
 
 
 def resolve_upstream_auth(client_auth: str | None) -> str | None:
-    """Use the client bearer token, or the canonical RassyCodex key."""
+    """Use the client bearer token, or the canonical RassyMind key."""
     if client_auth:
         return client_auth
     key = os.environ.get("QWENCODE_PROXY_API_KEY", "").strip()

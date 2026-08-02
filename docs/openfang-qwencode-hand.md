@@ -21,7 +21,7 @@ understanding, patch proposals, and independent review.
 - Default compatibility proxy: enabled by `QWENCODE_USE_PROXY=1`
 - Default proxy startup log directory: `/data/apps/qwencode/state/proxy-logs`
 
-The wrapper sources `/data/apps/rassycodex/.env` at runtime and exports
+The wrapper sources `/data/apps/rassymind/.env` at runtime and exports
 OpenAI-compatible environment variables for Qwen Code. Do not copy API keys into
 new docs, manifests, or command examples.
 
@@ -33,13 +33,13 @@ injects the server-operator profile into every hand prompt by default. Set
 The isolated Qwen home settings declare the local Rassy models for Qwen, but
 this Qwen Code build still logs `max_tokens: 8000` for headless OpenAI calls.
 The OpenFang wrapper therefore starts a tiny local OpenAI-compatible proxy that
-caps `max_tokens`, forwards to RassyCodex, and normalizes streaming chunks.
+caps `max_tokens`, forwards to RassyMind, and normalizes streaming chunks.
 Set `QWENCODE_USE_PROXY=0` to bypass it.
 OpenFang wrapper calls keep local OpenAI wire logging on by default for
 diagnostics; set `QWENCODE_OPENAI_LOGGING=0` to disable it.
 
-Use `QWENCODE_MODEL=rassy-worker` for stronger short coding passes and
-`QWENCODE_MODEL=rassy-codex` only for deeper runs where a longer startup and
+Use `QWENCODE_MODEL=rassy-utility` for stronger short coding passes and
+`QWENCODE_MODEL=rassy-code` only for deeper runs where a longer startup and
 response window is acceptable.
 
 ## Starter Use Cases
@@ -97,8 +97,8 @@ response window is acceptable.
 - `bin/qwencode --version` returns `0.18.5`.
 - The OpenFang invocation wrapper returned `QWENCODE_PROVIDER_CONFIG_OK` with
   the default `rassy-fast` model.
-- Direct RassyCodex non-streaming and streaming probes returned
+- Direct RassyMind non-streaming and streaming probes returned
   `DIRECT_RASSY_FAST_OK` and `DIRECT_RASSY_STREAM_OK`.
-- Some direct Qwen-to-RassyCodex headless attempts returned
+- Some direct Qwen-to-RassyMind headless attempts returned
   `APIConnectionError: fetch failed`; the wrapper keeps the compatibility proxy
   on by default to smooth that edge for OpenFang hand runs.

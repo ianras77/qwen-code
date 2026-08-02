@@ -28,7 +28,7 @@ server-operator coding peer, not a generic assistant.
 - OpenFang live state can diverge from checked-in source. Treat the daemon,
   `/home/ianras/.openfang`, active hands, cron state, and API output as live
   truth.
-- RassyCodex is the local OpenAI-compatible model gateway. Container-facing
+- RassyMind is the local OpenAI-compatible model gateway. Container-facing
   routes often use `host.docker.internal:8844`; host checks often use
   `127.0.0.1:8844`.
 

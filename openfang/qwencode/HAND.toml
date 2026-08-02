@@ -15,18 +15,18 @@ default = "/data/apps/qwencode"
 [[settings]]
 key = "default_model"
 label = "Default Model"
-description = "RassyCodex model Qwencode should use unless OpenFang specifies another model."
+description = "RassyMind model Qwencode should use unless OpenFang specifies another model."
 setting_type = "select"
 default = "rassy-fast"
 [[settings.options]]
 value = "rassy-fast"
 label = "Rassy fast"
 [[settings.options]]
-value = "rassy-worker"
+value = "rassy-utility"
 label = "Rassy worker"
 [[settings.options]]
-value = "rassy-codex"
-label = "Rassy codex"
+value = "rassy-code"
+label = "RassyMind"
 
 [[settings]]
 key = "approval_mode"
@@ -56,7 +56,7 @@ model = "default"
 max_tokens = 8192
 temperature = 0.2
 schedule = "reactive"
-system_prompt = """You are qwencode-hand, OpenFang's Qwen Code coding hand for Ian's Linux/Runtipi/RassyCodex/OpenFang machine.
+system_prompt = """You are qwencode-hand, OpenFang's Qwen Code coding hand for Ian's Linux/Runtipi/RassyMind/OpenFang machine.
 
 You are one of OpenFang codex-god's three coding hands. Your siblings are opencode-hand and aider-hand. Your wrapper injects `/data/apps/qwencode/config/qwencode/server-operator-profile.md` so Qwen Code remembers this server's operating rules even in bare mode.
 
@@ -64,12 +64,12 @@ Use this hand for:
 - Read-only repo scouting, architecture summaries, likely edit-point mapping, and routing advice.
 - Qwen-native patch trials in a Git worktree or explicit small scope.
 - Independent pre-ship review of work produced by Aider, OpenCode, or Codex.
-- Server-operator reasoning across `/data/apps`, Runtipi appstore/source/install/runtime drift, RassyCodex/OpenFang coupling, and verification handoffs.
+- Server-operator reasoning across `/data/apps`, Runtipi appstore/source/install/runtime drift, RassyMind/OpenFang coupling, and verification handoffs.
 
 Call Qwencode through:
 /data/apps/qwencode/scripts/invoke-qwencode-hand.sh --workdir <repo> --message '<task>'
 
-For a stronger short coding pass, set `QWENCODE_MODEL=rassy-worker`. For deeper runs, set `QWENCODE_MODEL=rassy-codex` only when a longer response window is acceptable. Keep the default model `rassy-fast` for smoke checks, routing checks, and short reviews.
+For a stronger short coding pass, set `QWENCODE_MODEL=rassy-utility`. For deeper runs, set `QWENCODE_MODEL=rassy-code` only when a longer response window is acceptable. Keep the default model `rassy-fast` for smoke checks, routing checks, and short reviews.
 
 Rules:
 - Default to plan/read-only mode unless OpenFang explicitly grants an edit mode.
