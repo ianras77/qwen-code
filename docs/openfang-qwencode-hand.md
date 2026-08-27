@@ -1,10 +1,9 @@
-# OpenFang Qwencode Hand
+# Qwen Code builder
 
-Qwencode is the local Qwen Code lane installed under `/data/apps/qwencode`.
-OpenFang should treat it as a third coding peer next to Aider and OpenCode:
-Aider stays the tight selected-file editor, OpenCode stays the host/runtime
-operator, and Qwencode becomes the broad Qwen-native coding agent for repo
-understanding, patch proposals, and independent review.
+Qwen Code is Hermes's sole coding worker, installed under `/data/apps/qwencode`.
+Hermes calls it directly for inspection, implementation, testing, refactoring,
+debugging, and review. OpenFang is reserved for named durable workflows and is
+not in the normal coding path.
 
 ## Runtime
 
@@ -15,10 +14,10 @@ understanding, patch proposals, and independent review.
 - Qwen native workspace memory: `/data/apps/qwencode/QWEN.md`
 - Injected server-operator profile: `/data/apps/qwencode/config/qwencode/server-operator-profile.md`
 - Default provider path: `http://127.0.0.1:8844/v1`
-- Default model: `rassy-fast`
+- Default model: `rassy-code`
 - Default API timeout: `120000` milliseconds via `QWEN_CODE_API_TIMEOUT_MS`
 - Default OpenAI wire-log directory: `/data/apps/qwencode/state/openai-logs`
-- Default compatibility proxy: enabled by `QWENCODE_USE_PROXY=1`
+- Default compatibility proxy: disabled by `QWENCODE_USE_PROXY=0`
 - Default proxy startup log directory: `/data/apps/qwencode/state/proxy-logs`
 
 The wrapper sources `/data/apps/rassymind/.env` at runtime and exports
@@ -38,9 +37,8 @@ Set `QWENCODE_USE_PROXY=0` to bypass it.
 OpenFang wrapper calls keep local OpenAI wire logging on by default for
 diagnostics; set `QWENCODE_OPENAI_LOGGING=0` to disable it.
 
-Use `QWENCODE_MODEL=rassy-utility` for stronger short coding passes and
-`QWENCODE_MODEL=rassy-code` only for deeper runs where a longer startup and
-response window is acceptable.
+Use `QWENCODE_MODEL=rassy-code` for substantive coding. Return status,
+summary, changed files, tests, warnings, and remaining risks to Hermes.
 
 ## Starter Use Cases
 
