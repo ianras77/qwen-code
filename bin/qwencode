@@ -31,7 +31,7 @@ fi
 
 export OPENAI_API_KEY="$API_KEY"
 export OPENAI_BASE_URL="$BASE"
-export OPENAI_MODEL="${QWENCODE_OPENAI_MODEL:-rassy-fast}"
+export OPENAI_MODEL="${QWENCODE_OPENAI_MODEL:-rassy-code}"
 export QWEN_MODEL="${QWEN_MODEL:-$OPENAI_MODEL}"
 export QWEN_HOME="${QWEN_HOME:-${ROOT}/state/qwen-home}"
 export QWEN_RUNTIME_DIR="${QWEN_RUNTIME_DIR:-${ROOT}/state/qwen-runtime}"
