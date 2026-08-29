@@ -96,7 +96,8 @@
     "@types/react-dom": "^19.2.0"
   },
   "bin": {
-    "qwen": "scripts/cli-entry.js"
+    "qwen": "scripts/cli-entry.js",
+    "qwencode": "scripts/cli-entry.js"
   },
   "files": [
     "dist/",
