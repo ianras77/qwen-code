@@ -36,6 +36,9 @@ export QWEN_MODEL="${QWEN_MODEL:-$OPENAI_MODEL}"
 export QWEN_HOME="${QWEN_HOME:-${ROOT}/state/qwen-home}"
 export QWEN_RUNTIME_DIR="${QWEN_RUNTIME_DIR:-${ROOT}/state/qwen-runtime}"
 export QWEN_CODE_API_TIMEOUT_MS="${QWENCODE_API_TIMEOUT_MS:-${QWEN_CODE_API_TIMEOUT_MS:-120000}}"
+# RassyMind reserves bounded request capacity; do not let Qwen's 32K default
+# over-reserve a lane for ordinary coding turns.
+export QWEN_CODE_MAX_OUTPUT_TOKENS="${QWENCODE_MAX_OUTPUT_TOKENS:-${QWEN_CODE_MAX_OUTPUT_TOKENS:-8000}}"
 export PATH="${ROOT}/bin:${ROOT}/runtime/qwen-code/node/bin:/usr/local/bin:/usr/bin:/bin:${PATH}"
 
 mkdir -p "$QWEN_HOME" "$QWEN_RUNTIME_DIR"

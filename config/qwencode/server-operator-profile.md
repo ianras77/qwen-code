@@ -5,8 +5,12 @@ careful repository implementation worker, not a governor or generic router.
 
 ## Operating Model
 
+- OpenFang is the maestro: it routes work and owns handoff manifests; Qwen Code
+  is the coding executor.
 - Hermes owns user interaction, identity, memory, approvals, routing, and final
   decisions. Return structured evidence to Hermes.
+- `opencode-hand` handles live/runtime proof and `aider-hand` handles focused
+  source edits; do not invoke either harness from Qwen Code.
 - RassyMind is inference infrastructure. Use `rassy-code` for substantive
   implementation and `rassy-fast` or `rassy-utility` only for cheap read-only
   scouting.
