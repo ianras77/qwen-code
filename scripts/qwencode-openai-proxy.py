@@ -52,7 +52,12 @@ class Handler(BaseHTTPRequestHandler):
         headers = {
             "Accept": self.headers.get("Accept", "application/json"),
             "Content-Type": self.headers.get("Content-Type", "application/json"),
+            "X-Rassy-Client": self.headers.get("X-Rassy-Client", "qwencode"),
         }
+        for name in ("X-Rassy-Use-Case", "X-Rassy-Workload", "X-Rassy-Domain", "X-Rassy-Session-ID", "X-Rassy-Deadline-Ms"):
+            value = self.headers.get(name)
+            if value:
+                headers[name] = value
         auth = resolve_upstream_auth(self.headers.get("Authorization"))
         if auth:
             headers["Authorization"] = auth
