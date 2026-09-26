@@ -54,7 +54,7 @@ class Handler(BaseHTTPRequestHandler):
             "Content-Type": self.headers.get("Content-Type", "application/json"),
             "X-Rassy-Client": self.headers.get("X-Rassy-Client", "qwencode"),
         }
-        for name in ("X-Rassy-Use-Case", "X-Rassy-Workload", "X-Rassy-Domain", "X-Rassy-Session-ID", "X-Rassy-Deadline-Ms"):
+        for name in ("X-Rassy-Use-Case", "X-Rassy-Workload", "X-Rassy-Domain", "X-Rassy-Session-ID", "X-Rassy-Trace-ID", "X-Rassy-Run-ID", "X-Rassy-Parent-Run-ID", "X-Rassy-Deadline-Ms", "X-Rassy-Retry-Budget"):
             value = self.headers.get(name)
             if value:
                 headers[name] = value
@@ -84,6 +84,8 @@ class Handler(BaseHTTPRequestHandler):
             payload = exc.read()
             self.send_response(exc.code)
             self.send_header("Content-Type", exc.headers.get("Content-Type", "application/json"))
+            if exc.headers.get("Retry-After"):
+                self.send_header("Retry-After", exc.headers["Retry-After"])
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -135,12 +137,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(raw)
                 self.wfile.flush()
                 continue
-            if not event.get("choices"):
-                continue
             self.wfile.write(b"data: " + json.dumps(event, separators=(",", ":")).encode("utf-8") + b"\n\n")
             self.wfile.flush()
         if not saw_done:
-            self.wfile.write(b"data: [DONE]\n\n")
+            failure = {"error": {"type": "upstream_stream_incomplete", "message": "Upstream stream ended before its terminal marker."}}
+            self.wfile.write(b"data: " + json.dumps(failure, separators=(",", ":")).encode("utf-8") + b"\n\n")
             self.wfile.flush()
 
 
