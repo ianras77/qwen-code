@@ -8,21 +8,21 @@ MESSAGE=""
 MESSAGE_FILE=""
 SESSION_ID="${QWENCODE_SESSION_ID:-}"
 APPROVAL_MODE="${QWENCODE_APPROVAL_MODE:-plan}"
-MODEL="${QWENCODE_MODEL:-${QWENCODE_OPENAI_MODEL:-rassy-fast}}"
+MODEL="${QWENCODE_MODEL:-${QWENCODE_OPENAI_MODEL:-rassy-code}}"
 TIMEOUT_SECONDS="${QWENCODE_HAND_TIMEOUT_SECONDS:-900}"
 OUTPUT_FORMAT="${QWENCODE_OUTPUT_FORMAT:-text}"
-ATTEMPTS="${QWENCODE_HAND_ATTEMPTS:-5}"
-API_TIMEOUT_MS="${QWENCODE_API_TIMEOUT_MS:-120000}"
+ATTEMPTS="${QWENCODE_HAND_ATTEMPTS:-1}"
+API_TIMEOUT_MS="${QWENCODE_API_TIMEOUT_MS:-300000}"
 INCLUDE_OPERATOR_PROFILE="${QWENCODE_INCLUDE_OPERATOR_PROFILE:-1}"
 OPERATOR_PROFILE="${QWENCODE_OPERATOR_PROFILE:-${ROOT}/config/qwencode/server-operator-profile.md}"
 OPENAI_LOGGING="${QWENCODE_OPENAI_LOGGING:-0}"
 OPENAI_LOGGING_DIR="${QWENCODE_OPENAI_LOGGING_DIR:-${ROOT}/state/openai-logs}"
+BARE_MODE="${QWENCODE_BARE:-0}"
 USE_PROXY="${QWENCODE_USE_PROXY:-0}"
-if [[ "$MODEL" == "rassy-mind" || "$MODEL" == "rassy-code" ]]; then
-  DEFAULT_PROXY_MAX_TOKENS=8192
-else
-  DEFAULT_PROXY_MAX_TOKENS=4096
-fi
+case "$MODEL" in
+  rassy-code|rassy-mind) DEFAULT_PROXY_MAX_TOKENS=4096 ;;
+  *) DEFAULT_PROXY_MAX_TOKENS=2048 ;;
+esac
 PROXY_MAX_TOKENS="${QWENCODE_PROXY_MAX_TOKENS:-$DEFAULT_PROXY_MAX_TOKENS}"
 PROXY_SCRIPT="${ROOT}/scripts/qwencode-openai-proxy.py"
 PROXY_START_TIMEOUT_TENTHS="${QWENCODE_PROXY_START_TIMEOUT_TENTHS:-300}"
@@ -46,11 +46,12 @@ usage() {
   cat <<'USAGE'
 Usage: invoke-qwencode-hand.sh [--workdir PATH] [--session-id UUID_OR_LABEL] [--approval-mode MODE] [--model MODEL] [--message TEXT|--message-file PATH] [-- EXTRA_QWEN_ARGS...]
 
-Runs Qwen Code as OpenFang's Qwen-focused coding hand. The default approval mode
-is plan, so OpenFang can use it for safe repo understanding and patch proposals.
-The server-operator profile is injected by default; set
-QWENCODE_INCLUDE_OPERATOR_PROFILE=0 to pass a raw prompt. Use auto-edit or yolo
-only when the OpenFang job explicitly allows writes.
+Runs Qwen Code as OpenFang's Qwen-focused coding hand. The default approval
+mode is plan. Native project context and skills are enabled; set
+QWENCODE_BARE=1 for an isolated diagnostic run. The server-operator profile is
+appended as system context by default; set QWENCODE_INCLUDE_OPERATOR_PROFILE=0
+to omit it. Coding models fall back to rassy-fast on capacity errors unless
+QWENCODE_FALLBACK_MODELS is set. Use auto-edit only when explicitly allowed.
 USAGE
 }
 
@@ -138,9 +139,6 @@ cleanup() {
   if [[ -n "$TMP_MESSAGE" && -f "$TMP_MESSAGE" ]]; then
     rm -f "$TMP_MESSAGE"
   fi
-  if [[ -n "$PROFILE_MESSAGE" && -f "$PROFILE_MESSAGE" ]]; then
-    rm -f "$PROFILE_MESSAGE"
-  fi
   if [[ -n "$PROXY_PID" ]]; then
     kill "$PROXY_PID" >/dev/null 2>&1 || true
   fi
@@ -177,16 +175,7 @@ if [[ "$INCLUDE_OPERATOR_PROFILE" != "0" ]]; then
     printf 'Qwencode operator profile is missing or unreadable: %s\n' "$OPERATOR_PROFILE" >&2
     exit 2
   fi
-  PROFILE_MESSAGE="$(mktemp -t qwencode-hand-profile-message.XXXXXX)"
-  {
-    printf '<qwencode_server_operator_profile>\n'
-    cat "$OPERATOR_PROFILE"
-    printf '\n</qwencode_server_operator_profile>\n\n'
-    printf '<openfang_task>\n'
-    cat "$MESSAGE_FILE"
-    printf '\n</openfang_task>\n'
-  } >"$PROFILE_MESSAGE"
-  MESSAGE_FILE="$PROFILE_MESSAGE"
+  PROFILE_MESSAGE="$(cat "$OPERATOR_PROFILE")"
 fi
 
 if [[ "$USE_PROXY" != "0" ]]; then
@@ -225,12 +214,43 @@ fi
 
 cmd=(
   timeout "$TIMEOUT_SECONDS" "$QWENCODE_BIN"
-  --bare
   --model "$MODEL"
   --approval-mode "$APPROVAL_MODE"
   --output-format "$OUTPUT_FORMAT"
   --prompt "$(cat "$MESSAGE_FILE")"
 )
+
+if [[ "$INCLUDE_OPERATOR_PROFILE" != "0" ]]; then
+  cmd+=(--append-system-prompt "$PROFILE_MESSAGE")
+fi
+
+if [[ "$BARE_MODE" == "1" ]]; then
+  cmd+=(--bare)
+fi
+
+if [[ -n "${QWENCODE_FALLBACK_MODELS+x}" ]]; then
+  FALLBACK_MODELS="$QWENCODE_FALLBACK_MODELS"
+else
+  case "$MODEL" in
+    rassy-code|rassy-mind) FALLBACK_MODELS="rassy-fast" ;;
+    rassy-fast) FALLBACK_MODELS="rassy-utility" ;;
+    *) FALLBACK_MODELS="" ;;
+  esac
+fi
+if [[ -n "$FALLBACK_MODELS" ]]; then
+  IFS=',' read -r -a FALLBACK_ARRAY <<<"$FALLBACK_MODELS"
+  if [[ "${#FALLBACK_ARRAY[@]}" -gt 3 ]]; then
+    printf 'QWENCODE_FALLBACK_MODELS accepts at most three models.\n' >&2
+    exit 2
+  fi
+  for fallback_model in "${FALLBACK_ARRAY[@]}"; do
+    case "$fallback_model" in
+      rassy-code|rassy-mind|rassy-fast|rassy-utility|rassy-quick) ;;
+      *) printf 'Unsupported Qwencode fallback model: %s\n' "$fallback_model" >&2; exit 2 ;;
+    esac
+    cmd+=(--fallback-model "$fallback_model")
+  done
+fi
 
 if [[ "$OPENAI_LOGGING" != "0" ]]; then
   mkdir -p "$OPENAI_LOGGING_DIR"
@@ -250,7 +270,7 @@ fi
 
 for ((attempt = 1; attempt <= ATTEMPTS; attempt++)); do
   set +e
-  output="$(cd "$WORKDIR" && DEBUG="${QWENCODE_DEBUG:-1}" QWEN_CODE_API_TIMEOUT_MS="$API_TIMEOUT_MS" "${cmd[@]}" 2>&1)"
+  output="$(cd "$WORKDIR" && DEBUG="${QWENCODE_DEBUG:-0}" QWEN_CODE_API_TIMEOUT_MS="$API_TIMEOUT_MS" "${cmd[@]}" 2>&1)"
   status=$?
   set -e
 
@@ -263,7 +283,7 @@ for ((attempt = 1; attempt <= ATTEMPTS; attempt++)); do
     exit 0
   fi
 
-  if [[ "$attempt" -lt "$ATTEMPTS" && "$output" == *"fetch failed"* ]]; then
+  if [[ "$attempt" -lt "$ATTEMPTS" && "$APPROVAL_MODE" == "plan" && "$output" == *"fetch failed"* ]]; then
     sleep $((attempt * 3))
     continue
   fi

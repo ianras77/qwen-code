@@ -42,33 +42,6 @@ def patch_installer() -> bool:
     return write_if_changed(path, text)
 
 
-def patch_codex_god() -> bool:
-    path = OPENFANG_ROOT / "agents" / "codex-god.agent.toml"
-    text = path.read_text(encoding="utf-8")
-    replacements = {
-        'description = "OpenFang coordinator for Ian\'s server, routing work to opencode-hand and aider-hand while maintaining machine knowledge."':
-        'description = "OpenFang coordinator for Ian\'s server, routing work to opencode-hand, aider-hand, and qwencode-hand while maintaining machine knowledge."',
-        "route action through two hands:":
-        "route action through three hands:",
-        "- aider-hand: selected-file source editing, repo-map questions, ask/code/architect loops, and narrow implementation work.\n":
-        "- aider-hand: selected-file source editing, repo-map questions, ask/code/architect loops, and narrow implementation work.\n- qwencode-hand: Qwen Code repo scouting, contained patch trials in worktrees, and independent pre-ship review.\n",
-        "Decide whether the task needs opencode-hand, aider-hand, both in parallel preflight, or only a direct answer.":
-        "Decide whether the task needs opencode-hand, aider-hand, qwencode-hand, paired preflight, or only a direct answer.",
-        "- Source-only selected-file edits: use aider-hand.\n":
-        "- Source-only selected-file edits: use aider-hand.\n- Broad repo scouting, patch trial, or independent pre-ship review: use qwencode-hand.\n",
-        "Aider is a first-class source expert: selected-file source edits, repo-map reasoning, tight diffs, and source verification notes.\n":
-        "Aider is a first-class source expert: selected-file source edits, repo-map reasoning, tight diffs, and source verification notes.\n- Qwencode is a first-class Qwen Code expert: broad repo scanning, alternate patch attempts, and independent ship/hold review.\n",
-    }
-    changed = False
-    for old, new in replacements.items():
-        if old in text and new not in text:
-            text = text.replace(old, new, 1)
-            changed = True
-    if not changed:
-        return False
-    return write_if_changed(path, text)
-
-
 def load_api_key() -> str:
     for line in ENV_PATH.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()
@@ -116,7 +89,6 @@ def main() -> int:
     changed = {
         "manifest": copy_manifest(),
         "installer": patch_installer(),
-        "codex_god": patch_codex_god(),
     }
     sync_runtime()
     for key, value in changed.items():

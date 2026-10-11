@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "provider": "openai",
+  "base_url": "http://127.0.0.1:8844/v1",
+  "default_model": "rassy-code",
+  "models": [
+    {
+      "id": "rassy-code",
+      "name": "Rassy Code",
+      "description": "Primary Qwen Code lane for implementation and tool use.",
+      "context_window_size": 65536,
+      "timeout_ms": 300000,
+      "max_retries": 2,
+      "max_output_tokens": 4096
+    },
+    {
+      "id": "rassy-mind",
+      "name": "Rassy Mind",
+      "description": "Deep architecture and long-form reasoning; capacity fallback is Rassy Fast.",
+      "context_window_size": 65536,
+      "timeout_ms": 300000,
+      "max_retries": 2,
+      "max_output_tokens": 4096
+    },
+    {
+      "id": "rassy-fast",
+      "name": "Rassy Fast",
+      "description": "Responsive repo scouting and fallback for busy deep lanes.",
+      "context_window_size": 65536,
+      "timeout_ms": 180000,
+      "max_retries": 2,
+      "max_output_tokens": 2048
+    },
+    {
+      "id": "rassy-quick",
+      "name": "Rassy Quick",
+      "description": "Low-latency summaries and simple bounded tasks.",
+      "context_window_size": 65536,
+      "timeout_ms": 120000,
+      "max_retries": 1,
+      "max_output_tokens": 2048
+    },
+    {
+      "id": "rassy-utility",
+      "name": "Rassy Utility",
+      "description": "Lightweight summaries and small support tasks.",
+      "context_window_size": 32768,
+      "timeout_ms": 180000,
+      "max_retries": 2,
+      "max_output_tokens": 2048
+    }
+  ]
+}

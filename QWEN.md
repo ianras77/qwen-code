@@ -8,10 +8,10 @@ Key standing context:
 
 - OpenFang is the maestro. It routes work, owns handoff manifests, coordinates
   safety gates, and records final state.
-- `opencode-hand` handles live/runtime proof: Docker, Runtipi, systemd,
-  installed-copy sync, logs, HTTP probes, and deployment evidence.
-- `aider-hand` handles focused source edits, repo-map reasoning, tight diffs,
-  and selected-file loops.
+- OpenFang owns live/runtime proof: Docker, Runtipi, systemd, installed-copy
+  sync, logs, HTTP probes, and deployment evidence.
+- Hermes provides the supervised operator boundary for inspection and approved
+  execution; Qwencode remains the broad source/review peer.
 - Qwencode should be the broad server-operator coding peer: repo scouting,
   patch trials, architectural mapping, and independent review before ship.
 - Runtipi drift is normal here. Source checkout, installed app tree, generated

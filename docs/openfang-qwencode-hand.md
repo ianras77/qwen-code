@@ -1,102 +1,92 @@
-# Qwen Code builder
+# Qwen Code in OpenFang
 
-Qwen Code is Hermes's sole coding worker, installed under `/data/apps/qwencode`.
-Hermes calls it directly for inspection, implementation, testing, refactoring,
-debugging, and review. OpenFang is reserved for named durable workflows and is
-not in the normal coding path.
+Qwen Code is the native coding executor behind `qwencode-hand`. Hermes routes
+and supervises requests; OpenFang owns durable hand jobs, schedules, manifests,
+dependency gates, and execution records.
 
-## Runtime
+## Installed path
 
-- Qwen Code source checkout: `/data/apps/qwencode`
-- Standalone Qwen runtime: `/data/apps/qwencode/runtime/qwen-code`
-- Local wrapper: `/data/apps/qwencode/bin/qwencode`
-- OpenFang invocation wrapper: `/data/apps/qwencode/scripts/invoke-qwencode-hand.sh`
-- Qwen native workspace memory: `/data/apps/qwencode/QWEN.md`
-- Injected server-operator profile: `/data/apps/qwencode/config/qwencode/server-operator-profile.md`
-- Default provider path: `http://127.0.0.1:8844/v1`
-- Default model: `rassy-code`
-- Default API timeout: `120000` milliseconds via `QWEN_CODE_API_TIMEOUT_MS`
-- Default OpenAI wire-log directory: `/data/apps/qwencode/state/openai-logs`
-- Default compatibility proxy: disabled by `QWENCODE_USE_PROXY=0`
-- Default proxy startup log directory: `/data/apps/qwencode/state/proxy-logs`
+- Source: `/data/apps/qwencode`
+- CLI: `/data/apps/qwencode/bin/qwencode` (currently Qwen Code 0.21.3)
+- OpenFang hand: `/data/apps/openfang/hands/qwencode/HAND.toml`
+- Invocation wrapper: `/data/apps/qwencode/scripts/invoke-qwencode-hand.sh`
+- Isolated Qwen home: `/data/apps/qwencode/state/qwen-home`
+- Managed model catalog: `/data/apps/qwencode/config/qwencode/rassymind-models.json`
+- Managed OpenFang skill: `config/qwencode/skills/openfang-handoff/SKILL.md`
+- Operator context: `config/qwencode/server-operator-profile.md`
 
-The wrapper sources `/data/apps/rassymind/.env` at runtime and exports
-OpenAI-compatible environment variables for Qwen Code. Do not copy API keys into
-new docs, manifests, or command examples.
+The CLI wrapper sources the RassyMind credential at runtime and exports it only
+to the Qwen process. Never copy credentials into prompts, settings, reports, or
+shell output. The setup reconciler atomically updates the managed RassyMind
+entries in the isolated Qwen settings, preserves unrelated settings/providers,
+and installs the OpenFang handoff skill. Run it with:
 
-The OpenFang invocation wrapper uses Qwen Code's `--bare` mode by default so
-starter handoffs stay explicit and fit the live local-model context budget.
-Because `--bare` keeps implicit startup context tight, the wrapper explicitly
-injects the server-operator profile into every hand prompt by default. Set
-`QWENCODE_INCLUDE_OPERATOR_PROFILE=0` only for raw diagnostics.
-The isolated Qwen home settings declare the local Rassy models for Qwen, but
-this Qwen Code build still logs `max_tokens: 8000` for headless OpenAI calls.
-The OpenFang wrapper therefore starts a tiny local OpenAI-compatible proxy that
-caps `max_tokens`, forwards to RassyMind, and normalizes streaming chunks.
-Set `QWENCODE_USE_PROXY=0` to bypass it.
-OpenFang wrapper calls keep local OpenAI wire logging on by default for
-diagnostics; set `QWENCODE_OPENAI_LOGGING=0` to disable it.
+```bash
+python3 /data/apps/qwencode/scripts/configure-qwencode-rassymind.py
+python3 /data/apps/qwencode/scripts/configure-qwencode-rassymind.py --check
+```
 
-Use `QWENCODE_MODEL=rassy-code` for substantive coding. Return status,
-summary, changed files, tests, warnings, and remaining risks to Hermes.
+## Model routing
 
-## Starter Use Cases
+The OpenFang outer hand uses `rassy-fast` to dispatch tools and summarize
+results. Qwen Code uses the selected route for the actual repository work:
 
-1. Qwen Scout
+| Route           | Use                                     | Context |
+| --------------- | --------------------------------------- | ------: |
+| `rassy-code`    | Main implementation and tool-heavy work |  65,536 |
+| `rassy-mind`    | Deep architecture and long reviews      |  65,536 |
+| `rassy-fast`    | Repo scouting and capacity fallback     |  65,536 |
+| `rassy-quick`   | Small summaries and bounded tasks       |  65,536 |
+| `rassy-utility` | Lightweight support work                |  32,768 |
 
-   OpenFang sends Qwencode a repo and asks for a read-only architectural pass:
-   what the app does, likely edit points, missing tests, and whether the task
-   should go to Aider, OpenCode, or a combined lane. This is the safest first
-   routine because the default wrapper approval mode is `plan`.
+Qwen Code's provider entries carry their own `contextWindowSize`, timeout, and
+output budget. The provider layer is sealed, so a top-level setting or an
+environment override does not fill missing fields on a listed provider model.
+The reconciler keeps those per-route values explicit. For `rassy-code` and
+`rassy-mind`, Qwen Code may fall back to `rassy-fast` on retryable capacity
+responses (429/503/529). Set `QWENCODE_FALLBACK_MODELS` to override the fallback
+list, or to an empty value to disable it.
 
-   Example handoff:
+## Native Qwen Code behavior
 
-   ```text
-   Use qwencode-hand in plan mode on /data/apps/qwencode. Read the repo at a
-   high level and return: purpose, package layout, likely edit points for an
-   OpenFang hand integration, tests to run, and whether this should route next
-   to Aider, OpenCode, or both. Do not edit files.
-   ```
+Normal hand runs do not pass `--bare`: Qwen Code can load the trusted repo's
+`QWEN.md`, project skills, settings, and its built-in coding tools. The
+server-operator profile is passed as a system prompt. The isolated Qwen home
+contains no global MCP servers, so its baseline remains focused; a repository's
+own MCP configuration is subject to Qwen Code's trust rules. Set
+`QWENCODE_BARE=1` only for isolated diagnostics.
 
-2. Patch Trial In A Worktree
+The default approval mode is `plan`. Use `auto-edit` only when the OpenFang job
+explicitly authorizes a bounded patch; never use `yolo` as a workaround.
+Normal runs do not enable OpenAI wire logging or debug output. Enable
+`QWENCODE_OPENAI_LOGGING=1` only for a bounded diagnostic and protect the
+resulting logs.
 
-   For a contained feature or bug fix, OpenFang creates a Git worktree and asks
-   Qwencode to attempt the patch with `auto-edit`. Qwencode returns changed
-   files and verification notes; Aider can then tighten the diff, and OpenCode
-   can run the runtime proof.
+## Invoking the hand
 
-   Example handoff:
+Prefer a message file so shell quoting cannot change the request:
 
-   ```text
-   Use qwencode-hand on the prepared worktree <worktree-path> with auto-edit
-   approval. Implement only the requested small patch, list every changed file,
-   and run the narrowest available verification. Leave deployment and live
-   service proof for opencode-hand.
-   ```
+```bash
+/data/apps/qwencode/scripts/invoke-qwencode-hand.sh \
+  --workdir /path/to/repository \
+  --model rassy-code \
+  --approval-mode plan \
+  --message-file /path/to/handoff.md
+```
 
-3. Independent Review Before Ship
+OpenFang's coding-job generator uses this wrapper for repository scouting,
+selected-file edits, runtime preflight, and final review. Its runner preserves
+the dependency graph and its report/ledger artifacts. Qwencode reports the
+source or review evidence; runtime status is only marked proven when the
+requested runtime surfaces were actually checked.
 
-   After Aider or OpenCode changes a repo, OpenFang asks Qwencode for an
-   independent review against the original request. It should look for behavior
-   gaps, missing tests, over-broad edits, and user-boundary violations, then
-   return a ship/hold recommendation with concrete file references.
+## Operational checks
 
-   Example handoff:
+```bash
+/data/apps/qwencode/bin/qwencode --version
+python3 /data/apps/qwencode/scripts/configure-qwencode-rassymind.py --check
+```
 
-   ```text
-   Use qwencode-hand in plan mode on <repo>. Review the current diff against
-   this original request: <request>. Do not edit. Return findings first, then
-   a ship/hold recommendation, exact file references, and any tests still
-   missing.
-   ```
-
-## Verification Notes
-
-- `bin/qwencode --version` returns `0.18.5`.
-- The OpenFang invocation wrapper returned `QWENCODE_PROVIDER_CONFIG_OK` with
-  the default `rassy-fast` model.
-- Direct RassyMind non-streaming and streaming probes returned
-  `DIRECT_RASSY_FAST_OK` and `DIRECT_RASSY_STREAM_OK`.
-- Some direct Qwen-to-RassyMind headless attempts returned
-  `APIConnectionError: fetch failed`; the wrapper keeps the compatibility proxy
-  on by default to smooth that edge for OpenFang hand runs.
+Live qualification should use a small read-only task first, then a disposable
+worktree task when verifying edit mode. Capture the requested model, any
+capacity fallback, approval mode, final output, tool result, and Git diff.
